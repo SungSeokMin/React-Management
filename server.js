@@ -20,12 +20,42 @@ const connection = mysql.createConnection({
 });
 connection.connect();
 
+const multer = require('multer');
+const upload = multer({ dest: './upload' });
+
 app.get('/api/customers', (req, res) => {
-  connection.query('select * from customer', (err, rows, fileds) => {
+  connection.query(
+    'select * from customer where isDeleted = 0',
+    (err, rows, fileds) => {
+      res.send(rows);
+    }
+  );
+});
+
+app.use('/image', express.static('./upload'));
+
+app.post('/api/customers', upload.single('image'), (req, res) => {
+  let sql = 'insert into customer values (null, ?, ?, ?, ?, ?, 0, now())';
+  let image = '/image/' + req.file.filename;
+  let name = req.body.name;
+  let birthday = req.body.birthday;
+  let gender = req.body.gender;
+  let job = req.body.job;
+  let params = [image, name, birthday, gender, job];
+  connection.query(sql, params, (err, rows, fileds) => {
     res.send(rows);
+    console.log(err);
+    console.log(rows);
   });
 });
 
+app.delete('/api/customers/:id', (req, res) => {
+  let sql = 'update customer set isDeleted = 1 where id = ?';
+  let params = [req.params.id];
+  connection.query(sql, params, (err, rows, fileds) => {
+    res.send(rows);
+  });
+});
 app.listen(port, () => {
   console.log(`동작 중 ... ${port}`);
 });
